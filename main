@@ -1,0 +1,36 @@
+#Скрипт для выгрузки проданных билетов для авиаагентства + дополнен менеджером контекста для дз
+import paramiko
+from contextlib import contextmanager
+from datetime import datetime
+
+
+consoles = ['42121004', '42130804', '42174860', '99521007', '99530807', '99574867']  # Существующие пульты у агентства
+
+@contextmanager
+def s7_connect(username, password):
+    try:
+        start_time = datetime.now()
+        print(start_time.time())
+        transport = paramiko.Transport(('salesftp.s7.ru', 22))
+        transport.connect(username=username, password=password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        yield sftp
+
+    except Exception: #Тупо, но для примера...
+        print("Ошибка в подключени")
+    finally:
+        end_time = datetime.now()
+        print(end_time.time())
+        sftp.close()
+        transport.close()
+        duration = end_time - start_time
+        print('Время выполнения скрипта: {} секунд'.format(duration.total_seconds()))
+
+# логин/пароль убран, дабы не светить на гитхабе
+with s7_connect('XXX', 'YYY') as flow:
+    for console in consoles:
+        if flow.listdir(path='./' + console + '/AIR/') != []:
+            file_list = flow.listdir(path='./' + console + '/AIR/')
+            for file in file_list:
+                flow.get(remotepath='./' + console + '/AIR/' + file, localpath='./' + file)
+
